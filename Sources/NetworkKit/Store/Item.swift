@@ -21,7 +21,7 @@ extension Store {
 extension Store.Item {
     public enum Template: Hashable {
         case tab(Tab)
-        case coin(Coin)
+        case add(Coin)
         case quote(coin: Store.Observable<Coin>)
         case text(Text)
         case button(route: Route)
@@ -62,7 +62,7 @@ extension Store.Item {
     public var route: Route? {
         switch template {
         case .tab(let tab)     : return tab.route
-        case .coin(let coin)   : return coin.route
+        case .add(let coin)    : return Route(to: .add(stage: .coin(coin)))
         case .button(let route): return route
         case .quote            : return nil
         case .text             : return nil

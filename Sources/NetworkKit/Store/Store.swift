@@ -96,7 +96,6 @@ extension Store {
         guard expired else { return }
         order(.reload)
     }
-
     private func revive() {
         switch route.destination {
         case .wallets:

@@ -6,7 +6,6 @@ internal final class AddProvider: DefaultProvider {
     internal override func stream(for order: Store.Order) -> AsyncStream<Store.Order> {
         return AsyncStream { stream in
             Task {
-                await order.accept()
                 switch route.stage {
                 case .coins:
                     async let coins = try get()
@@ -28,7 +27,8 @@ internal final class AddProvider: DefaultProvider {
                             async let sections = try get(coin: coin, stage: .store(.recovery(coin, location)))
                             await order.attach(try await sections)
                             await order.complete()
-                        case .store(let phrases, let coin, let location):
+                        case .store(let phrases, let coin, let location, let password):
+                            try await self.store(phrases: phrases, with: coin, at: location, with: password)
                             await order.complete()
                         }
                     }
@@ -75,6 +75,17 @@ extension AddProvider {
         let buttons: OrderedSet<Store.Item> = {
             var items: OrderedSet<Store.Item> = []
             switch stage {
+            case .coin(let coin):
+                coin.perks.forEach({ perk in
+                    switch perk {
+                    case .key:
+                        items.append(Store.Item(section: button, template: .button(route: Route(to: .add(stage: .store(.location(coin)))))))
+                    case .wallet:
+                        items.append(Store.Item(section: button, template: .button(route: Route(to: .add(stage: .import(coin))))))
+                        items.append(Store.Item(section: button, template: .button(route: Route(to: .add(stage: .create(coin))))))
+                    }
+                })
+                items.append(Store.Item(section: button, template: .text(.center(longText.attributed))))
             case .store(let store):
                 switch store {
                 case .location(let coin):
@@ -86,15 +97,7 @@ extension AddProvider {
                     items.append(Store.Item(section: button, template: .recovery(coin, location)))
                 }
             default:
-                coin.perks.forEach({ perk in
-                    switch perk {
-                    case .key:
-                        items.append(Store.Item(section: button, template: .button(route: Route(to: .add(stage: .store(.location(coin)))))))
-                    case .wallet:
-                        items.append(Store.Item(section: button, template: .button(route: Route(to: .add(stage: .import(coin))))))
-                        items.append(Store.Item(section: button, template: .button(route: Route(to: .add(stage: .create(coin))))))
-                    }
-                })
+                break
             }
             return items
         }()        
@@ -108,9 +111,19 @@ extension AddProvider {
                           items: buttons)
         ]
     }
+    private func store(phrases: [String], with coin: Coin, at location: Wallet.Location, with password: String) async throws {
+        guard let encrypted = encrypt(secret: phrases.joined(separator: " "), with: password) else { throw Network.Failure.encryption }
+        let wallet = Wallet(coin: coin.code, phrase: encrypted, location: location)
+        switch location {
+        case .cloud:
+            break
+        case .keychain:
+            try Keychain.save(wallet: wallet)
+        }
+    }
 }
 
 extension AddProvider {
-    fileprivate var longText: String { "Long read text describing the endless possibilities of using \neither iCloud Keychain or Google's Firestore Cloud.\nBoth solutions are so great and offers so many perks,\nyou can't even imagine. \nAlmost forgot to say, you can even export your \nprivate encryption key! \nGood luck."
+    fileprivate var longText: String { "Long read text describing the endless possibilities of using either iCloud Keychain or Google's Firestore Cloud. Both solutions are so great and offers so many perks, you can't even imagine. \nAlmost forgot to say, you can even export your private encryption key! Good luck."
     }
 }

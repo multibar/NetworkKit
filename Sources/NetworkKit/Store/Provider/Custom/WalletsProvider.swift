@@ -8,7 +8,7 @@ internal final class WalletsProvider: DefaultProvider {
         return AsyncStream { stream in
             Task {
                 await order.accept()
-                guard let empty = route.coin else {
+                guard let coin = route.coin else {
                     await order.attach(.misroute)
                     await order.fail()
                     stream.yield(order)
@@ -16,9 +16,9 @@ internal final class WalletsProvider: DefaultProvider {
                     return
                 }
                 do {
-                    async let coin = try get(coin: empty)
-                    await order.attach(try await coin.section)
-                    await order.attach(try await coin.listener)
+                    async let response = try response(for: coin)
+                    await order.attach(try await response.sections)
+                    await order.attach(try await response.listeners)
                     await order.complete()
                 } catch {
                     await order.attach(error)
@@ -30,28 +30,37 @@ internal final class WalletsProvider: DefaultProvider {
     }
 }
 extension WalletsProvider {
-    private func get(coin: Coin) async throws -> (section: Store.Section, listener: Listener) {
-        let response = try await Store.observe(coin: coin)
+    private func response(for coin: Coin) async throws -> (sections: OrderedSet<Store.Section>, listeners: [Listener]) {
+        async let header = try header(for: coin)
+        async let wallets = try wallets(for: coin)
+        var sections = try await OrderedSet([header.section])
+        sections.append(contentsOf: try await wallets)
+        return (sections: sections, listeners: [try await header.listener])
+    }
+    private func header(for coin: Coin) async throws -> (section: Store.Section, listener: Listener) {
+        let response = try await Store.observe(coin)
         let id = UUID()
         let section = Store.Section(id: id,
-                                    header: .title(.large(text: response.coin.info.title)),
+                                    header: .title(.large(text: coin.info.title)),
                                     items: [
                                         .spacer(height: 8, section: id), // Will be 16 because LayoutKit adds separators
                                         Store.Item(section: id, template: .quote(coin: response.observable))
                                     ])
         return (section: section, listener: response.listener)
     }
+    private func wallets(for coin: Coin) async throws -> OrderedSet<Store.Section> {
+        let wallets = await Keychain.wallets().filter({$0.coin == coin.code})
+        var sections: OrderedSet<Store.Section> = []
+        wallets.forEach { wallet in
+            let section = UUID()
+            sections.append(Store.Section(id: section, items: [Store.Item(section: section, template: .loader)]))
+        }
+        return sections
+    }
 }
 extension Route {
-    public var coin: Coin? {
+    fileprivate var coin: Coin? {
         switch destination {
-        case .add(let stage):
-            switch stage {
-            case .coin(let coin):
-                return coin
-            default:
-                return nil
-            }
         case .wallets(let coin):
             return coin
         default:

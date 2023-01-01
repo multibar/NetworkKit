@@ -23,6 +23,7 @@ extension Store.Item {
         case tab(Tab)
         case add(Coin)
         case quote(coin: Store.Observable<Coin>)
+        case wallet(Wallet)
         case text(Text)
         case recovery(Coin, Wallet.Location)
         case button(route: Route)
@@ -65,6 +66,7 @@ extension Store.Item {
         case .add(let coin)    : return Route(to: .add(stage: .coin(coin)))
         case .button(let route): return route
         case .quote            : return nil
+        case .wallet           : return nil
         case .text             : return nil
         case .recovery         : return nil
         case .loader           : return nil

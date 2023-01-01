@@ -8,8 +8,8 @@ public protocol Customer: AnyObject {
 
 public final class Store: Provider {
     public let id = UUID()
-    
     private var provider: Provider
+    private weak var customer: Customer?
 
     public private(set) var route: Route
     public private(set) var query: Query
@@ -21,13 +21,12 @@ public final class Store: Provider {
     public var preloaded: OrderedSet<Store.Section> {
         return provider.preloaded
     }
-    
-    public weak var customer: Customer?
-            
-    public required init(route: Route, query: Store.Query = .none, load: Bool = true) {
+                
+    public required init(route: Route, query: Store.Query = .none, customer: Customer, load: Bool = true) {
         self.provider = Store.provider(from: route, query: query)
         self.route = route
         self.query = query
+        self.customer = customer
         guard load else { return }
         order(.reload)
     }

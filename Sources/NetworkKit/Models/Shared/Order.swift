@@ -110,6 +110,7 @@ extension Store.Order {
 extension Store.Order {
     public enum Operation: Hashable, Equatable {
         case reload
+        case store(phrases: [String], coin: Coin, location: Wallet.Location)
     }
     public enum Status: Hashable, Equatable {
         case created

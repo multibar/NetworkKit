@@ -19,11 +19,18 @@ internal final class AddProvider: DefaultProvider {
                 case .store(let store):
                     switch store {
                     case .location(let coin):
-                        async let coin = try get(coin: coin, stage: .store(.location(coin)))
-                        await order.attach(try await coin)
+                        async let sections = try get(coin: coin, stage: .store(.location(coin)))
+                        await order.attach(try await sections)
                         await order.complete()
-                    default:
-                        break
+                    case .recovery(let coin, let location):
+                        switch order.operation {
+                        case .reload:
+                            async let sections = try get(coin: coin, stage: .store(.recovery(coin, location)))
+                            await order.attach(try await sections)
+                            await order.complete()
+                        case .store(let phrases, let coin, let location):
+                            await order.complete()
+                        }
                     }
                 default:
                     await order.attach(.misroute)
@@ -46,50 +53,59 @@ extension AddProvider {
         return section
     }
     private func get(coin: Coin, stage: Route.Add.Stage) async throws -> OrderedSet<Store.Section> {
-        print(coin)
         let header = UUID()
-        let buttons = UUID()
-        let items: OrderedSet<Store.Item> = {
+        let headers: OrderedSet<Store.Item> = {
             var items: OrderedSet<Store.Item> = []
             switch stage {
             case .store(let store):
                 switch store {
                 case .location(let coin):
-                    print(coin)
-                    items.append(Store.Item(section: header, template: .button(route: Route(to: .add(stage: .store(.recovery(coin, .keychain)))))))
-                    items.append(Store.Item(section: header, template: .button(route: Route(to: .add(stage: .store(.recovery(coin, .cloud)))))))
+                    items.append(.spacer(height: 8, section: header))
+                    items.append(Store.Item(section: header, template: .text(.head(coin.info.title.attributed))))
+                case .recovery:
+                    items.append(.spacer(height: 8, section: header))
+                }
+            default:
+                items.append(.spacer(height: 8, section: header))
+                items.append(Store.Item(section: header, template: .text(.head(coin.info.title.attributed))))
+            }
+            return items
+        }()
+        let button = UUID()
+        let buttons: OrderedSet<Store.Item> = {
+            var items: OrderedSet<Store.Item> = []
+            switch stage {
+            case .store(let store):
+                switch store {
+                case .location(let coin):
+                    items.append(Store.Item(section: button, template: .button(route: Route(to: .add(stage: .store(.recovery(coin, .keychain)))))))
+                    items.append(Store.Item(section: button, template: .button(route: Route(to: .add(stage: .store(.recovery(coin, .cloud)))))))
                     items.append(.spacer(height: 0))
-                    items.append(Store.Item(section: header, template: .text(.center(longText.attributed))))
+                    items.append(Store.Item(section: button, template: .text(.center(longText.attributed))))
                 case .recovery(let coin, let location):
-                    break
+                    items.append(Store.Item(section: button, template: .recovery(coin, location)))
                 }
             default:
                 coin.perks.forEach({ perk in
                     switch perk {
                     case .key:
-                        items.append(Store.Item(section: header, template: .button(route: Route(to: .add(stage: .store(.location(coin)))))))
+                        items.append(Store.Item(section: button, template: .button(route: Route(to: .add(stage: .store(.location(coin)))))))
                     case .wallet:
-                        items.append(Store.Item(section: header, template: .button(route: Route(to: .add(stage: .import(coin))))))
-                        items.append(Store.Item(section: header, template: .button(route: Route(to: .add(stage: .create(coin))))))
+                        items.append(Store.Item(section: button, template: .button(route: Route(to: .add(stage: .import(coin))))))
+                        items.append(Store.Item(section: button, template: .button(route: Route(to: .add(stage: .create(coin))))))
                     }
                 })
             }
             return items
-        }()
+        }()        
         return [
             .spacer(height: 8),
             Store.Section(id: header,
                           header: .coin(coin),
-                          items: [
-                            .spacer(height: 8, section: header),
-                            Store.Item(section: header, template: .text(.head(coin.info.title.attributed))),
-                            Store.Item(section: header, template: .text(.center(coin.links.origin.source.attributed))),
-                            .spacer(height: 8, section: header)
-                          ],
-                          footer: .perks(coin)),
-            Store.Section(id: buttons,
+                          items: headers),
+            Store.Section(id: button,
                           header: .spacer(height: 24),
-                          items: items)
+                          items: buttons)
         ]
     }
 }

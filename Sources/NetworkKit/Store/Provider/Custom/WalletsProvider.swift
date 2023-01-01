@@ -49,11 +49,13 @@ extension WalletsProvider {
         return (section: section, listener: response.listener)
     }
     private func wallets(for coin: Coin) async throws -> OrderedSet<Store.Section> {
-        let wallets = await Keychain.wallets().filter({$0.coin == coin.code})
+        let wallets = Keychain.wallets().filter({$0.coin == coin.code})
         var sections: OrderedSet<Store.Section> = []
         wallets.forEach { wallet in
             let section = UUID()
-            sections.append(Store.Section(id: section, items: [Store.Item(section: section, template: .loader)]))
+            sections.append(Store.Section(id: section,
+                                          header: .spacer(height: 8),
+                                          items: [Store.Item(section: section, template: .wallet(wallet))]))
         }
         return sections
     }

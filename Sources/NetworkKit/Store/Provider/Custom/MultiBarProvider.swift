@@ -9,8 +9,8 @@ internal final class MultibarProvider: DefaultProvider {
             Task {
                 await order.accept()
                 do {
-                    async let coins = try get()
-                    await order.attach(try await coins)
+                    async let tabs = try tabs()
+                    await order.attach(try await tabs)
                     await order.complete()
                 } catch {
                     await order.attach(error)
@@ -23,10 +23,12 @@ internal final class MultibarProvider: DefaultProvider {
     }
 }
 extension MultibarProvider {
-    private func get(coins query: Store.Query = .none) async throws -> Store.Section {
-        let coins = try await Store.get(coins: query)
+    private func tabs() async throws -> Store.Section {
+        let codes = Keychain.wallets().compactMap({$0.coin})
         let id = UUID()
-        var items = OrderedSet(coins.compactMap({Store.Item(section: id, template: .tab(.coin($0)))}))
+        var items: OrderedSet<Store.Item> = try await OrderedSet(codes.asyncMap { code in
+            return Store.Item(section: id, template: .tab(.coin(try await Store.coin(by: code))))
+        })
         items.append(Store.Item(section: id, template: .tab(.add)))
         let section = Store.Section(id: id,
                                     template: .tabs,

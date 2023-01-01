@@ -18,20 +18,20 @@ extension CollectionReference {
     }
 }
 extension Store {
-    internal static func get(coin code: String) async throws -> Coin {
-        return try await coins.coin(code).getDocument().data(as: Coin.self)
+    internal static func coin(by code: String) async throws -> Coin {
+        return try await NetworkKit.coins.coin(code).getDocument().data(as: Coin.self)
     }
-    internal static func get(fiat code: String) async throws -> Fiat {
-        return try await fiats.fiat(code).getDocument().data(as: Fiat.self)
+    internal static func fiat(by code: String) async throws -> Fiat {
+        return try await NetworkKit.fiats.fiat(code).getDocument().data(as: Fiat.self)
     }
-    internal static func get(coins query: Query) async throws -> [Coin] {
+    internal static func coins(with query: Query) async throws -> [Coin] {
         switch query {
-        case .none: return try await coins.getDocuments().documents.compactMap{try $0.data(as: Coin.self)}
+        case .none: return try await NetworkKit.coins.getDocuments().documents.compactMap{try $0.data(as: Coin.self)}
         }
     }
     internal static func observe(_ coin: Coin) async throws -> (observable: Observable<Coin>, listener: Listener) {
         let observable = Observable(coin)
-        let listener = coins.coin(coin.code).addSnapshotListener { [weak observable] document, _ in
+        let listener = NetworkKit.coins.coin(coin.code).addSnapshotListener { [weak observable] document, _ in
             observable?.value = try? document?.data(as: Coin.self)
         }
         return (observable: observable, listener: listener)

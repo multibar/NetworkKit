@@ -44,7 +44,7 @@ internal final class AddProvider: DefaultProvider {
 }
 extension AddProvider {
     private func get(coins query: Store.Query = .none) async throws -> Store.Section {
-        let coins = try await Store.get(coins: query)
+        let coins = try await Store.coins(with: query)
         let id = UUID()
         let items = OrderedSet(coins.sorted(by: {$0.info.order < $1.info.order}).compactMap({Store.Item(section: id, template: .add($0))}))
         let section = Store.Section(id: id,

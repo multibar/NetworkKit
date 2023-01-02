@@ -95,6 +95,9 @@ extension Store {
     public var expired: Bool {
         return lifetime.expired
     }
+    public func expire() {
+        lifetime = .now
+    }
     public func updateIfNeeded() {
         guard expired else { return }
         order(.reload)
@@ -106,9 +109,6 @@ extension Store {
         default:
             lifetime = .hours(1)
         }
-    }
-    private func expire() {
-        lifetime = .now
     }
 }
 extension Store: WorkstationListener {

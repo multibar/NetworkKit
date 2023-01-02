@@ -79,10 +79,10 @@ extension Store.Item {
         switch template {
         case .tab(let tab)      : return tab.route
         case .add(let coin)     : return Route(to: .add(stage: .coin(coin)))
+        case .wallet(let wallet): return Route(to: .wallet(wallet))
         case .button(let action): return action.route
         case .phrase            : return nil
         case .quote             : return nil
-        case .wallet            : return nil
         case .text              : return nil
         case .loader            : return nil
         case .spacer            : return nil

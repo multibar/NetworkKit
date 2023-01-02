@@ -34,7 +34,7 @@ internal class DefaultProvider: Provider {
     internal func accept(order: Store.Order) async -> AsyncStream<Store.Order> {
         self.order = order
         switch order.operation {
-        case .reload, .store:
+        case .reload, .store, .rename, .delete, .decrypt:
             return stream(for: order)
         }
     }

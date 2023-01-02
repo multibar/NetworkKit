@@ -30,6 +30,9 @@ internal final class AddProvider: DefaultProvider {
                         case .store(let phrases, let coin, let location, let password):
                             try await self.store(phrases: phrases, with: coin, at: location, with: password)
                             await order.complete()
+                        default:
+                            await order.attach(.misroute)
+                            await order.fail()
                         }
                     }
                 default:
@@ -76,6 +79,7 @@ extension AddProvider {
                         items.append(Store.Item(section: button, template: .button(.route(Route(to: .add(stage: .create(coin)))))))
                     }
                 })
+                items.append(.spacer(height: 0))
                 items.append(Store.Item(section: button, template: .text(.center(longText.attributed))))
             case .store(let store):
                 switch store {

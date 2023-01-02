@@ -10,6 +10,7 @@ extension Store {
         public nonisolated let route: Route
         public nonisolated let created: Core.Date = .now
         public private(set) var status: Status = .created
+        public private(set) var package: Package = .empty
         public private(set) var sections: OrderedSet<Store.Section> = []
         public private(set) var failures: OrderedSet<Network.Failure> = []
         internal private(set) var listeners: [Listener] = []
@@ -72,6 +73,10 @@ extension Store.Order {
             return
         }
     }
+    internal func attach(_ package: Package) {
+        guard status == .created || status == .accepted else { return }
+        self.package = package
+    }
     internal func attach(_ section: Store.Section) {
         guard status == .created || status == .accepted else { return }
         self.sections.append(section)
@@ -111,6 +116,13 @@ extension Store.Order {
     public enum Operation: Hashable, Equatable {
         case reload
         case store(phrases: [String], coin: Coin, location: Wallet.Location, password: String)
+        case rename(wallet: Wallet, with: String)
+        case delete(wallet: Wallet)
+        case decrypt(wallet: Wallet, decrypted: String? = nil)
+    }
+    public enum Package: Hashable, Equatable {
+        case empty
+        case wallet(Wallet)
     }
     public enum Status: Hashable, Equatable {
         case created

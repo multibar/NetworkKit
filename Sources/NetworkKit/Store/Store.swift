@@ -75,6 +75,8 @@ extension Store {
         switch route.destination {
         case .add:
             return AddProvider(route: route)
+        case .wallet:
+            return WalletProvider(route: route)
         case .wallets:
             return WalletsProvider(route: route)
         case .multibar:

@@ -118,7 +118,7 @@ extension Store.Order {
         case store(phrases: [String], coin: Coin, location: Wallet.Location, password: String)
         case rename(wallet: Wallet, with: String)
         case delete(wallet: Wallet)
-        case decrypt(wallet: Wallet, decrypted: String? = nil)
+        case decrypt(wallet: Wallet)
     }
     public enum Package: Hashable, Equatable {
         case empty

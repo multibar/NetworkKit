@@ -21,14 +21,11 @@ public final class Store: Provider {
     public var preloaded: OrderedSet<Store.Section> {
         return provider.preloaded
     }
-                
-    public required init(route: Route, query: Store.Query = .none, customer: Customer, load: Bool = true) {
+    
+    public required init(route: Route, query: Store.Query = .none) {
         self.provider = Store.provider(from: route, query: query)
         self.route = route
         self.query = query
-        self.customer = customer
-        guard load else { return }
-        order(.reload)
     }
     public func set(route: Route, query: Query = .none, load: Bool = true) {
         guard self.route != route && self.provider.route != route else { return }
@@ -41,6 +38,11 @@ public final class Store: Provider {
     public func set(query: Query, load: Bool = true) {
         self.query = query
         self.provider.queryable?.query = query
+        guard load else { return }
+        order(.reload)
+    }
+    public func set(customer: Customer, load: Bool = true) {
+        self.customer = customer
         guard load else { return }
         order(.reload)
     }

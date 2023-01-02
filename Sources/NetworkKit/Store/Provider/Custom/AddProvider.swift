@@ -56,19 +56,10 @@ extension AddProvider {
         let header = UUID()
         let headers: OrderedSet<Store.Item> = {
             var items: OrderedSet<Store.Item> = []
-            switch stage {
-            case .store(let store):
-                switch store {
-                case .location(let coin):
-                    items.append(.spacer(height: 8, section: header))
-                    items.append(Store.Item(section: header, template: .text(.head(coin.info.title.attributed))))
-                case .recovery:
-                    items.append(.spacer(height: 8, section: header))
-                }
-            default:
-                items.append(.spacer(height: 8, section: header))
-                items.append(Store.Item(section: header, template: .text(.head(coin.info.title.attributed))))
-            }
+            items.append(.spacer(height: 8, section: header))
+            items.append(Store.Item(section: header, template: .text(.head(coin.info.title.attributed))))
+            items.append(Store.Item(section: header, template: .text(.center(coin.links.origin.source.attributed))))
+            items.append(.spacer(height: 8, section: header))
             return items
         }()
         let button = UUID()
@@ -79,22 +70,25 @@ extension AddProvider {
                 coin.perks.forEach({ perk in
                     switch perk {
                     case .key:
-                        items.append(Store.Item(section: button, template: .button(route: Route(to: .add(stage: .store(.location(coin)))))))
+                        items.append(Store.Item(section: button, template: .button(.route(Route(to: .add(stage: .store(.location(coin))))))))
                     case .wallet:
-                        items.append(Store.Item(section: button, template: .button(route: Route(to: .add(stage: .import(coin))))))
-                        items.append(Store.Item(section: button, template: .button(route: Route(to: .add(stage: .create(coin))))))
+                        items.append(Store.Item(section: button, template: .button(.route(Route(to: .add(stage: .import(coin)))))))
+                        items.append(Store.Item(section: button, template: .button(.route(Route(to: .add(stage: .create(coin)))))))
                     }
                 })
                 items.append(Store.Item(section: button, template: .text(.center(longText.attributed))))
             case .store(let store):
                 switch store {
                 case .location(let coin):
-                    items.append(Store.Item(section: button, template: .button(route: Route(to: .add(stage: .store(.recovery(coin, .keychain)))))))
-                    items.append(Store.Item(section: button, template: .button(route: Route(to: .add(stage: .store(.recovery(coin, .cloud)))))))
+                    items.append(Store.Item(section: button, template: .button(.route(Route(to: .add(stage: .store(.recovery(coin, .keychain))))))))
+                    items.append(Store.Item(section: button, template: .button(.route(Route(to: .add(stage: .store(.recovery(coin, .cloud))))))))
                     items.append(.spacer(height: 0))
                     items.append(Store.Item(section: button, template: .text(.center(longText.attributed))))
                 case .recovery(let coin, let location):
-                    items.append(Store.Item(section: button, template: .recovery(coin, location)))
+                    for number in 1...coin.words {
+                        items.append(Store.Item(section: button, template: .phrase(number: number, last: number == coin.words)))
+                    }
+                    items.append(Store.Item(section: button, template: .button(.process(coin, location))))
                 }
             default:
                 break
@@ -105,7 +99,8 @@ extension AddProvider {
             .spacer(height: 8),
             Store.Section(id: header,
                           header: .coin(coin),
-                          items: headers),
+                          items: headers,
+                          footer: .perks(coin)),
             Store.Section(id: button,
                           header: .spacer(height: 24),
                           items: buttons)

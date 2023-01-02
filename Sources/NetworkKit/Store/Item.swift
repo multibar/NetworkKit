@@ -24,9 +24,9 @@ extension Store.Item {
         case add(Coin)
         case quote(coin: Store.Observable<Coin>)
         case wallet(Wallet)
+        case phrase(number: Int, last: Bool)
         case text(Text)
-        case recovery(Coin, Wallet.Location)
-        case button(route: Route)
+        case button(Button.Action)
         case loader
         case spacer(Double)
     }
@@ -58,19 +58,34 @@ extension Store.Item {
         case quote (NSAttributedString)
         case center(NSAttributedString)
     }
+    public struct Button: Hashable {
+        public enum Action: Hashable {
+            case route(Route)
+            case process(Coin, Wallet.Location)
+            
+            public var route: Route? {
+                switch self {
+                case .route(let route):
+                    return route
+                case .process:
+                    return nil
+                }
+            }
+        }
+    }
 }
 extension Store.Item {
     public var route: Route? {
         switch template {
-        case .tab(let tab)     : return tab.route
-        case .add(let coin)    : return Route(to: .add(stage: .coin(coin)))
-        case .button(let route): return route
-        case .quote            : return nil
-        case .wallet           : return nil
-        case .text             : return nil
-        case .recovery         : return nil
-        case .loader           : return nil
-        case .spacer           : return nil
+        case .tab(let tab)      : return tab.route
+        case .add(let coin)     : return Route(to: .add(stage: .coin(coin)))
+        case .button(let action): return action.route
+        case .phrase            : return nil
+        case .quote             : return nil
+        case .wallet            : return nil
+        case .text              : return nil
+        case .loader            : return nil
+        case .spacer            : return nil
         }
     }
 }

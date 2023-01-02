@@ -6,25 +6,25 @@ internal final class AddProvider: DefaultProvider {
     internal override func stream(for order: Store.Order) -> AsyncStream<Store.Order> {
         return AsyncStream { stream in
             Task {
-                switch route.stage {
+                switch route.add {
                 case .coins:
-                    async let coins = try get()
+                    async let coins = try coins()
                     await order.attach(try await coins)
                     await order.complete()
                 case .coin(let coin):
-                    async let coin = try get(coin: coin, stage: .coin(coin))
+                    async let coin = try result(for: coin, add: .coin(coin))
                     await order.attach(try await coin)
                     await order.complete()
                 case .store(let store):
                     switch store {
                     case .location(let coin):
-                        async let sections = try get(coin: coin, stage: .store(.location(coin)))
+                        async let sections = try result(for: coin, add: .store(.location(coin)))
                         await order.attach(try await sections)
                         await order.complete()
                     case .recovery(let coin, let location):
                         switch order.operation {
                         case .reload:
-                            async let sections = try get(coin: coin, stage: .store(.recovery(coin, location)))
+                            async let sections = try result(for: coin, add: .store(.recovery(coin, location)))
                             await order.attach(try await sections)
                             await order.complete()
                         case .store(let phrases, let coin, let location, let password):
@@ -46,7 +46,7 @@ internal final class AddProvider: DefaultProvider {
     }
 }
 extension AddProvider {
-    private func get(coins query: Store.Query = .none) async throws -> Store.Section {
+    private func coins(for query: Store.Query = .none) async throws -> Store.Section {
         let coins = try await Store.coins(with: query)
         let id = UUID()
         let items = OrderedSet(coins.sorted(by: {$0.info.order < $1.info.order}).compactMap({Store.Item(section: id, template: .add($0))}))
@@ -55,28 +55,46 @@ extension AddProvider {
                                     footer: .spacer(height: 32))
         return section
     }
-    private func get(coin: Coin, stage: Route.Add.Stage) async throws -> OrderedSet<Store.Section> {
+    private func result(for coin: Coin, add: Route.Add) async throws -> OrderedSet<Store.Section> {
+        var keychain = false
         let header = UUID()
         let headers: OrderedSet<Store.Item> = {
             var items: OrderedSet<Store.Item> = []
             items.append(.spacer(height: 8, section: header))
-            items.append(Store.Item(section: header, template: .text(.head(coin.info.title.attributed))))
-            items.append(Store.Item(section: header, template: .text(.center(coin.links.origin.source.attributed))))
+            switch add {
+            case .store(let store):
+                switch store {
+                case .recovery(_, let location):
+                    switch location {
+                    case .cloud:
+                        items.append(Store.Item(section: header, template: .text(.head("Cloud".attributed))))
+                    case .keychain:
+                        items.append(Store.Item(section: header, template: .text(.head("Keychain".attributed))))
+                    }
+                default:
+                    items.append(Store.Item(section: header, template: .text(.head(coin.info.title.attributed))))
+                    items.append(Store.Item(section: header, template: .text(.center(coin.links.origin.source.attributed))))
+                }
+            default:
+                items.append(Store.Item(section: header, template: .text(.head(coin.info.title.attributed))))
+                items.append(Store.Item(section: header, template: .text(.center(coin.links.origin.source.attributed))))
+            }
             items.append(.spacer(height: 8, section: header))
             return items
         }()
+        let toggle = UUID()
         let button = UUID()
         let buttons: OrderedSet<Store.Item> = {
             var items: OrderedSet<Store.Item> = []
-            switch stage {
+            switch add {
             case .coin(let coin):
                 coin.perks.forEach({ perk in
                     switch perk {
                     case .key:
-                        items.append(Store.Item(section: button, template: .button(.route(Route(to: .add(stage: .store(.location(coin))))))))
+                        items.append(Store.Item(section: button, template: .button(.route(Route(to: .add(.store(.location(coin))))))))
                     case .wallet:
-                        items.append(Store.Item(section: button, template: .button(.route(Route(to: .add(stage: .import(coin)))))))
-                        items.append(Store.Item(section: button, template: .button(.route(Route(to: .add(stage: .create(coin)))))))
+                        items.append(Store.Item(section: button, template: .button(.route(Route(to: .add(.import(coin)))))))
+                        items.append(Store.Item(section: button, template: .button(.route(Route(to: .add(.create(coin)))))))
                     }
                 })
                 items.append(.spacer(height: 0))
@@ -84,8 +102,8 @@ extension AddProvider {
             case .store(let store):
                 switch store {
                 case .location(let coin):
-                    items.append(Store.Item(section: button, template: .button(.route(Route(to: .add(stage: .store(.recovery(coin, .keychain))))))))
-                    items.append(Store.Item(section: button, template: .button(.route(Route(to: .add(stage: .store(.recovery(coin, .cloud))))))))
+                    items.append(Store.Item(section: button, template: .button(.route(Route(to: .add(.store(.recovery(coin, .keychain(.local)))))))))
+                    items.append(Store.Item(section: button, template: .button(.route(Route(to: .add(.store(.recovery(coin, .cloud))))))))
                     items.append(.spacer(height: 0))
                     items.append(Store.Item(section: button, template: .text(.center(longText.attributed))))
                 case .recovery(let coin, let location):
@@ -93,22 +111,45 @@ extension AddProvider {
                         items.append(Store.Item(section: button, template: .phrase(number: number, last: number == coin.words)))
                     }
                     items.append(Store.Item(section: button, template: .button(.process(coin, location))))
+                    switch location {
+                    case .keychain:
+                        keychain = true
+                    default:
+                        break
+                    }
                 }
             default:
                 break
             }
             return items
-        }()        
-        return [
-            .spacer(height: 8),
-            Store.Section(id: header,
-                          header: .coin(coin),
-                          items: headers,
-                          footer: .perks(coin)),
-            Store.Section(id: button,
-                          header: .spacer(height: 24),
-                          items: buttons)
-        ]
+        }()
+        let sections: OrderedSet<Store.Section> = {
+            if keychain {
+                return [
+                    .spacer(height: 8),
+                    Store.Section(id: header,
+                                  header: .coin(coin),
+                                  items: headers),
+                    Store.Section(id: toggle,
+                                  items: [Store.Item(section: toggle, template: .keychain(location: .local))]),
+                    Store.Section(id: button,
+                                  header: .spacer(height: 24),
+                                  items: buttons)
+                ]
+            } else {
+                return [
+                    .spacer(height: 8),
+                    Store.Section(id: header,
+                                  header: .coin(coin),
+                                  items: headers,
+                                  footer: .perks(coin)),
+                    Store.Section(id: button,
+                                  header: .spacer(height: 24),
+                                  items: buttons)
+                ]
+            }
+        }()
+        return sections
     }
     private func store(phrases: [String], with coin: Coin, at location: Wallet.Location, with password: String) async throws {
         guard let encrypted = encrypt(secret: phrases.joined(separator: " "), with: password) else { throw Network.Failure.encryption }

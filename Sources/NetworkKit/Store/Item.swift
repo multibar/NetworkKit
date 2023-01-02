@@ -27,6 +27,7 @@ extension Store.Item {
         case phrase(number: Int, last: Bool)
         case text(Text)
         case button(Button.Action)
+        case keychain(location: Keychain.Location)
         case loader
         case spacer(Double)
     }
@@ -39,7 +40,7 @@ extension Store.Item {
         
         public var route: Route {
             switch self {
-            case .add: return Route(to: .add(stage: .coins))
+            case .add: return Route(to: .add(.coins))
             case .settings: return Route(to: .settings)
             case .coin(let coin): return Route(to: .wallets(coin))
             }
@@ -78,12 +79,13 @@ extension Store.Item {
     public var route: Route? {
         switch template {
         case .tab(let tab)      : return tab.route
-        case .add(let coin)     : return Route(to: .add(stage: .coin(coin)))
+        case .add(let coin)     : return Route(to: .add(.coin(coin)))
         case .wallet(let wallet): return Route(to: .wallet(wallet))
         case .button(let action): return action.route
         case .phrase            : return nil
         case .quote             : return nil
         case .text              : return nil
+        case .keychain          : return nil
         case .loader            : return nil
         case .spacer            : return nil
         }

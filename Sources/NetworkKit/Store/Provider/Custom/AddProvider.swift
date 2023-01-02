@@ -118,7 +118,7 @@ extension AddProvider {
         case .cloud:
             break
         case .keychain:
-            try Keychain.save(wallet: wallet)
+            try Keychain.save(wallet)
         }
     }
 }

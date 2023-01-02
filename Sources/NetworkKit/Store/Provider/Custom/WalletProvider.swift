@@ -26,6 +26,9 @@ internal final class WalletProvider: DefaultProvider {
                         let wallet = try await rename(wallet, with: title)
                         await order.attach(.wallet(wallet))
                         await order.complete()
+                    case .delete(let wallet):
+                        try await delete(wallet)
+                        await order.complete()
                     default:
                         break
                     }
@@ -61,9 +64,17 @@ extension WalletProvider {
         case .cloud:
             break
         case .keychain:
-            try Keychain.save(wallet: wallet)
+            try Keychain.save(wallet)
         }
         return wallet
+    }
+    private func delete(_ wallet: Wallet) async throws {
+        switch wallet.location {
+        case .cloud:
+            break
+        case .keychain:
+            try Keychain.delete(wallet)
+        }
     }
 }
 extension Route {

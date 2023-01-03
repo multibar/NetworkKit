@@ -115,7 +115,7 @@ extension Store.Order {
 extension Store.Order {
     public enum Operation: Hashable, Equatable {
         case reload
-        case store(phrases: [String], coin: Coin, location: Wallet.Location, password: String)
+        case store(phrases: [String], coin: Coin, location: Wallet.Location, key: String)
         case rename(wallet: Wallet, with: String)
         case delete(wallet: Wallet)
         case decrypt(wallet: Wallet)
@@ -123,6 +123,15 @@ extension Store.Order {
     public enum Package: Hashable, Equatable {
         case empty
         case wallet(Wallet)
+        
+        public var wallet: Wallet? {
+            switch self {
+            case .empty:
+                return nil
+            case .wallet(let wallet):
+                return wallet
+            }
+        }
     }
     public enum Status: Hashable, Equatable {
         case created

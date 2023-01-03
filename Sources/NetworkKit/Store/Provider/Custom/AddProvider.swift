@@ -27,8 +27,9 @@ internal final class AddProvider: DefaultProvider {
                             async let sections = try result(for: coin, add: .store(.recovery(coin, location)))
                             await order.attach(try await sections)
                             await order.complete()
-                        case .store(let phrases, let coin, let location, let password):
-                            try await self.store(phrases: phrases, with: coin, at: location, with: password)
+                        case .store(let phrases, let coin, let location, let key):
+                            let wallet = try await self.store(phrases: phrases, with: coin, at: location, with: key)
+                            await order.attach(.wallet(wallet))
                             await order.complete()
                         default:
                             await order.attach(.misroute)
@@ -102,7 +103,7 @@ extension AddProvider {
             case .store(let store):
                 switch store {
                 case .location(let coin):
-                    items.append(Store.Item(section: button, template: .button(.route(Route(to: .add(.store(.recovery(coin, .keychain(.local)))))))))
+                    items.append(Store.Item(section: button, template: .button(.route(Route(to: .add(.store(.recovery(coin, .keychain(.device)))))))))
                     items.append(Store.Item(section: button, template: .button(.route(Route(to: .add(.store(.recovery(coin, .cloud))))))))
                     items.append(.spacer(height: 0))
                     items.append(Store.Item(section: button, template: .text(.center(longText.attributed))))
@@ -131,7 +132,7 @@ extension AddProvider {
                                   header: .coin(coin),
                                   items: headers),
                     Store.Section(id: toggle,
-                                  items: [Store.Item(section: toggle, template: .keychain(location: .local))]),
+                                  items: [Store.Item(section: toggle, template: .keychain(location: .device))]),
                     Store.Section(id: button,
                                   header: .spacer(height: 24),
                                   items: buttons)
@@ -151,20 +152,40 @@ extension AddProvider {
         }()
         return sections
     }
-    private func store(phrases: [String], with coin: Coin, at location: Wallet.Location, with password: String) async throws {
-        guard let encrypted = encrypt(secret: phrases.joined(separator: " "), with: password) else { throw Network.Failure.encryption }
+    private func store(phrases: [String], with coin: Coin, at location: Wallet.Location, with key: String) async throws -> Wallet {
+        guard let encrypted = encrypt(secret: phrases.joined(separator: " "), with: key) else { throw Network.Failure.encryption }
         let wallets = Keychain.wallets().filter({$0.coin == coin.code}).count
-        let wallet = Wallet(title: "Wallet \(wallets + 1)", coin: coin.code, phrase: encrypted, location: location)
+        let wallet = Wallet(title: Self.title(for: location, number: wallets + 1), coin: coin.code, phrase: encrypted, location: location)
         switch location {
         case .cloud:
             break
         case .keychain:
             try Keychain.save(wallet)
+            if !wallet.location.synchronizable {
+                try Keychain.save(key, for: wallet)
+            }
         }
+        return wallet
     }
 }
 
 extension AddProvider {
-    fileprivate var longText: String { "Long read text describing the endless possibilities of using either iCloud Keychain or Google's Firestore Cloud. Both solutions are so great and offers so many perks, you can't even imagine. \nAlmost forgot to say, you can even export your private encryption key! Good luck."
+    private static func title(for location: Wallet.Location, number: Int) -> String {
+        switch location {
+        case .cloud:
+            return "Cloud Wallet \(number)"
+        case .keychain(let location):
+            switch location {
+            case .device:
+                return "Device Wallet \(number)"
+            case .icloud:
+                return "iCloud Wallet \(number)"
+            }
+        }
+    }
+}
+extension AddProvider {
+    private var longText: String {
+        "Long read text describing the endless possibilities of using either iCloud Keychain or Google's Firestore Cloud. Both solutions are so great and offers so many perks, you can't even imagine. \nAlmost forgot to say, you can even export your private encryption key! Good luck."
     }
 }

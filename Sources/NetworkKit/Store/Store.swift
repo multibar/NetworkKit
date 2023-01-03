@@ -22,14 +22,25 @@ public final class Store: Provider {
         return provider.preloaded
     }
     
+    public var loading: Bool {
+        get async {
+            switch await order?.status {
+            case .created, .accepted:
+                return true
+            default:
+                return false
+            }
+        }
+    }
+    
     public required init(route: Route, query: Store.Query = .none) {
-        self.provider = Store.provider(from: route, query: query)
+        self.provider = Store.provider(for: route, query: query)
         self.route = route
         self.query = query
     }
     public func set(route: Route, query: Query = .none, load: Bool = true) {
         guard self.route != route && self.provider.route != route else { return }
-        self.provider = Store.provider(from: route, query: query)
+        self.provider = Store.provider(for: route, query: query)
         self.route = route
         self.query = query
         guard load else { return }
@@ -49,14 +60,18 @@ public final class Store: Provider {
     
     public func order(_ operation: Store.Order.Operation) {
         Task {
-            revive()
-            await order?.cancel()
-            for try await order in await accept(order: order(for: operation)) {
-                guard provider.id == order.provider else { return }
-                if await order.status == .failed { expire() }
-                await customer?.receive(order: order, from: self)
+            revive()                                                                /// Updating store lifetime.
+            if operation.cancellable { await order?.cancel() }                      /// Only cancellable operation can cancel previous cancellable order.
+            for try await order in await accept(order: order(for: operation)) {     /// Iterating through stream.
+                if order.provider != provider.id { return }                         /// Check if provider has changed while order was being executed.
+                if await order.status == .cancelled { return }                      /// WIP: Don't stream cancelled order to customer.
+                if await order.status == .failed && order.cancellable { expire() }  /// Expire store if order cancellable order failed, so that customer can expect reload on next check.
+                await customer?.receive(order: order, from: self)                   /// Stream order to customer.
             }
         }
+    }
+    public func retry(_ order: Store.Order) {
+        self.order(order.operation)
     }
     
     internal func accept(order: Store.Order) async -> AsyncStream<Store.Order> {
@@ -71,7 +86,7 @@ public final class Store: Provider {
 }
 
 extension Store {
-    private static func provider(from route: Route, query: Store.Query) -> Provider {
+    private static func provider(for route: Route, query: Store.Query) -> Provider {
         switch route.destination {
         case .add:
             return AddProvider(route: route)

@@ -24,7 +24,8 @@ internal final class MultibarProvider: DefaultProvider {
 }
 extension MultibarProvider {
     private func tabs() async throws -> Store.Section {
-        let codes = OrderedSet(Keychain.wallets().compactMap({$0.coin}))
+        var codes = OrderedSet(Keychain.wallets().compactMap({$0.coin}))
+        if codes.empty { codes = ["TON"] }
         let id = UUID()
         var items: OrderedSet<Store.Item> = try await OrderedSet(codes.asyncMap { code in
             return Store.Item(section: id, template: .tab(.coin(try await Store.coin(by: code))))

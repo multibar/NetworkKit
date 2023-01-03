@@ -15,7 +15,7 @@ extension Store {
         public private(set) var failures: OrderedSet<Network.Failure> = []
         internal private(set) var listeners: [Listener] = []
                 
-        public init(provider: UUID, operation: Operation, route: Route) {
+        internal init(provider: UUID, operation: Operation, route: Route) {
             self.provider = provider
             self.operation = operation
             self.route = route
@@ -56,6 +56,7 @@ extension Store.Order {
         }
     }
     internal func cancel() {
+        guard operation.cancellable else { return }
         switch status {
         case .created, .accepted:
             status = .cancelled
@@ -119,6 +120,10 @@ extension Store.Order {
         case rename(wallet: Wallet, with: String)
         case delete(wallet: Wallet)
         case decrypt(wallet: Wallet)
+        
+        public var cancellable: Bool {
+            self == .reload
+        }
     }
     public enum Package: Hashable, Equatable {
         case empty
@@ -142,7 +147,10 @@ extension Store.Order {
     }
 }
 extension Store.Order {
-    public var instantaneous: Bool {
+    public nonisolated var cancellable: Bool {
+        return operation.cancellable
+    }
+    public nonisolated var instantaneous: Bool {
         return Core.Date.now.ts - created.ts < 0.1
     }
 }

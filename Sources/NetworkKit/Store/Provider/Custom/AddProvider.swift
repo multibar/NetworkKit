@@ -161,7 +161,7 @@ extension AddProvider {
             break
         case .keychain:
             try Keychain.save(wallet)
-            if !wallet.location.synchronizable {
+            if wallet.location.device {
                 try Keychain.save(key, for: wallet)
             }
         }

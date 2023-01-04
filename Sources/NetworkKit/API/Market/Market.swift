@@ -53,7 +53,7 @@ extension Network {
                 return components.url
             }
             public var key: Network.Api.Key? {
-                return Network.Manager.shared.configuration?.market
+                return Network.shared.configuration?.market
             }
             public var token: String? {
                 return nil

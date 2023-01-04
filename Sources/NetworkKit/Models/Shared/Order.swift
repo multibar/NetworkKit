@@ -8,7 +8,7 @@ extension Store {
         public nonisolated let provider: UUID
         public nonisolated let operation: Operation
         public nonisolated let route: Route
-        public nonisolated let created: Core.Date = .now
+        public nonisolated let created: Time = time
         public private(set) var status: Status = .created
         public private(set) var package: Package = .empty
         public private(set) var sections: OrderedSet<Store.Section> = []
@@ -151,7 +151,7 @@ extension Store.Order {
         return operation.cancellable
     }
     public nonisolated var instantaneous: Bool {
-        return Core.Date.now.ts - created.ts < 0.1
+        return time.seconds - created.seconds < 0.1
     }
 }
 extension OrderedSet where Element == Store.Order {

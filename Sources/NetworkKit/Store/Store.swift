@@ -13,7 +13,7 @@ public final class Store: Provider {
 
     public private(set) var route: Route
     public private(set) var query: Query
-    public private(set) var lifetime: Core.Date = .now
+    public private(set) var lifetime: Time = time
         
     public var order: Store.Order? {
         return provider.order
@@ -111,7 +111,7 @@ extension Store {
         return lifetime.expired
     }
     public func expire() {
-        lifetime = .now
+        lifetime = time
     }
     public func updateIfNeeded() {
         guard expired else { return }

@@ -8,6 +8,7 @@ internal final class WalletProvider: DefaultProvider {
         return AsyncStream { stream in
             Task {
                 await order.accept()
+                stream.yield(order)
                 guard let wallet = route.wallet else {
                     await order.attach(.misroute)
                     await order.fail()

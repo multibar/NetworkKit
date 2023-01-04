@@ -1,9 +1,15 @@
 import CoreKit
-import Foundation
 
 extension Settings.Keys {
     public struct Network {
-        public static let test = "settings/keys/network/test"
-        public static let fiat = "settings/keys/network/fiat"
+        private init() {}
     }
+}
+extension Settings.Keys.Network {
+    public struct Fiat {
+        private init() {}
+    }
+}
+extension Settings.Keys.Network.Fiat {
+    public static let preferred = "settings/keys/network/fiat/preferred"
 }

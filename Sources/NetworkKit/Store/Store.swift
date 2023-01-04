@@ -13,7 +13,7 @@ public final class Store: Provider {
 
     public private(set) var route: Route
     public private(set) var query: Query
-    public private(set) var lifetime: Time = time
+    public private(set) var expires: Time = .now
         
     public var order: Store.Order? {
         return provider.order
@@ -108,10 +108,10 @@ extension Store {
 }
 extension Store {
     public var expired: Bool {
-        return lifetime.expired
+        return expires.expired
     }
     public func expire() {
-        lifetime = time
+        expires = .now
     }
     public func updateIfNeeded() {
         guard expired else { return }
@@ -120,9 +120,9 @@ extension Store {
     private func revive() {
         switch route.destination {
         case .wallets:
-            lifetime = .minutes(10)
+            expires = .minutes(10)
         default:
-            lifetime = .hours(1)
+            expires = .hours(1)
         }
     }
 }

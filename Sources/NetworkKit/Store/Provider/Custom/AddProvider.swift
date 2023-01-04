@@ -6,6 +6,8 @@ internal final class AddProvider: DefaultProvider {
     internal override func stream(for order: Store.Order) -> AsyncStream<Store.Order> {
         return AsyncStream { stream in
             Task {
+                await order.accept()
+                stream.yield(order)
                 switch route.add {
                 case .coins:
                     async let coins = try coins()

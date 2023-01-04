@@ -6,10 +6,14 @@ import FirebaseFirestoreSwift
 fileprivate let store = Firestore.firestore()
 fileprivate let coins = store.collection("coins")
 fileprivate let fiats = store.collection("fiats")
+fileprivate let settings = store.collection("settings")
 
 internal typealias Listener = ListenerRegistration
 
 extension CollectionReference {
+    internal var time: DocumentReference {
+        return document("time")
+    }
     internal func coin(_ code: String) -> DocumentReference {
         return document(code)
     }
@@ -19,10 +23,10 @@ extension CollectionReference {
 }
 extension Store {
     internal static func coin(by code: String) async throws -> Coin {
-        return try await NetworkKit.coins.coin(code).getDocument().data(as: Coin.self)
+        return try await NetworkKit.coins.coin(code).getDocument(as: Coin.self)
     }
     internal static func fiat(by code: String) async throws -> Fiat {
-        return try await NetworkKit.fiats.fiat(code).getDocument().data(as: Fiat.self)
+        return try await NetworkKit.fiats.fiat(code).getDocument(as: Fiat.self)
     }
     internal static func coins(with query: Query) async throws -> [Coin] {
         switch query {

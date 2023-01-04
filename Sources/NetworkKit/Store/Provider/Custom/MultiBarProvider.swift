@@ -8,6 +8,7 @@ internal final class MultibarProvider: DefaultProvider {
         return AsyncStream { stream in
             Task {
                 await order.accept()
+                stream.yield(order)
                 do {
                     async let tabs = try tabs()
                     await order.attach(try await tabs)

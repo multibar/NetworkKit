@@ -156,7 +156,7 @@ extension AddProvider {
     }
     private func store(phrases: [String], with coin: Coin, at location: Wallet.Location, with key: String) async throws -> Wallet {
         guard let encrypted = encrypt(secret: phrases.joined(separator: " "), with: key) else { throw Network.Failure.encryption }
-        let wallets = Keychain.wallets().filter({$0.coin == coin.code}).count
+        let wallets = Keychain.wallets().filter({$0.coin == coin.code && $0.location == location}).count
         let wallet = Wallet(title: Self.title(for: location, number: wallets + 1), coin: coin.code, phrase: encrypted, location: location)
         switch location {
         case .cloud:

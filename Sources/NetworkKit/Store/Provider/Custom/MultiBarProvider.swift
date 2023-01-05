@@ -44,12 +44,17 @@ extension MultibarProvider {
     }
     private func settings() async throws -> Store.Section {
         let settings = UUID()
-        let items: OrderedSet<Store.Item> = [
+        var items: OrderedSet<Store.Item> = [
             .spacer(height: 16, section: settings),
             Store.Item(section: settings, template: .option(.currency)),
-            Store.Item(section: settings, template: .option(.passcode)),
-            Store.Item(section: settings, template: .option(.biometry))
+            Store.Item(section: settings, template: .option(.passcode))
         ]
+        switch System.Device.biometry {
+        case .faceID, .touchID:
+            items.append(Store.Item(section: settings, template: .option(.biometry)))
+        default:
+            break
+        }
         let section = Store.Section(id: settings,
                                     template: .settings,
                                     header: .title(.large(text: "Settings")),

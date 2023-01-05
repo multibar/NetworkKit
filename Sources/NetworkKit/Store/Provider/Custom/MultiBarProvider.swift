@@ -11,7 +11,11 @@ internal final class MultibarProvider: DefaultProvider {
                 stream.yield(order)
                 do {
                     async let tabs = try tabs()
+                    async let settings = try settings()
+                    async let footprint = try footprint()
                     await order.attach(try await tabs)
+                    await order.attach(try await settings)
+                    await order.attach(try await footprint)
                     await order.complete()
                 } catch {
                     await order.attach(error)
@@ -34,6 +38,33 @@ extension MultibarProvider {
         items.append(Store.Item(section: id, template: .tab(.add)))
         let section = Store.Section(id: id,
                                     template: .tabs,
+                                    items: items,
+                                    footer: .spacer(height: 32))
+        return section
+    }
+    private func settings() async throws -> Store.Section {
+        let settings = UUID()
+        let items: OrderedSet<Store.Item> = [
+            .spacer(height: 16, section: settings),
+            Store.Item(section: settings, template: .option(.currency)),
+            Store.Item(section: settings, template: .option(.passcode)),
+            Store.Item(section: settings, template: .option(.biometry))
+        ]
+        let section = Store.Section(id: settings,
+                                    template: .settings,
+                                    header: .title(.large(text: "Settings")),
+                                    items: items,
+                                    footer: .spacer(height: 32))
+        return section
+    }
+    private func footprint() async throws -> Store.Section {
+        let footprint = UUID()
+        let items: OrderedSet<Store.Item> = [
+            Store.Item(section: footprint, template: .footprint),
+            Store.Item(section: footprint, template: .text(.center("https://github.com/multibar/wallet".attributed)))
+        ]
+        let section = Store.Section(id: footprint,
+                                    template: .auto,
                                     items: items,
                                     footer: .spacer(height: 32))
         return section

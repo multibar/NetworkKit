@@ -26,6 +26,7 @@ extension Store.Section {
     public enum Template: Hashable {
         case tabs
         case auto
+        case settings
     }
 }
 extension Store.Section {

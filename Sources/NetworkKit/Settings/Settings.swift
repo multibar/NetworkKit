@@ -11,8 +11,8 @@ extension Settings.Network {
     }
 }
 extension Settings.Network.Fiat {
-    public static var preferred: String? {
-        get { Settings.get(value: String.self, for: Settings.Keys.Network.Fiat.preferred) }
+    public static var preferred: String {
+        get { Settings.get(value: String.self, for: Settings.Keys.Network.Fiat.preferred) ?? "USD" }
         set { Settings.set(value: newValue, for: Settings.Keys.Network.Fiat.preferred) }
     }
 }

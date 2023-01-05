@@ -26,6 +26,8 @@ extension Store.Item {
         case wallet(Wallet)
         case phrase(number: Int, last: Bool)
         case text(Text)
+        case option(Option)
+        case footprint
         case button(Button.Action)
         case keychain(location: Keychain.Location)
         case loader
@@ -74,6 +76,18 @@ extension Store.Item {
             }
         }
     }
+    public enum Option: Hashable {
+        case currency
+        case passcode
+        case biometry
+        
+        public var route: Route? {
+            switch self {
+            case .currency, .passcode, .biometry:
+                return nil
+            }
+        }
+    }
 }
 extension Store.Item {
     public var route: Route? {
@@ -81,11 +95,13 @@ extension Store.Item {
         case .tab(let tab)      : return tab.route
         case .add(let coin)     : return Route(to: .add(.coin(coin)))
         case .wallet(let wallet): return Route(to: .wallet(wallet))
+        case .option(let option): return option.route
         case .button(let action): return action.route
         case .phrase            : return nil
         case .quote             : return nil
         case .text              : return nil
         case .keychain          : return nil
+        case .footprint         : return nil
         case .loader            : return nil
         case .spacer            : return nil
         }

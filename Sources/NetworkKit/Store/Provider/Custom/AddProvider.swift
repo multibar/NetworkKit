@@ -110,8 +110,8 @@ extension AddProvider {
                     items.append(.spacer(height: 0))
                     items.append(Store.Item(section: button, template: .text(.center(longText.attributed))))
                 case .recovery(let coin, let location):
-                    for number in 1...coin.words {
-                        items.append(Store.Item(section: button, template: .phrase(number: number, last: number == coin.words)))
+                    for number in 1...coin.info.words {
+                        items.append(Store.Item(section: button, template: .phrase(number: number, last: number == coin.info.words)))
                     }
                     items.append(Store.Item(section: button, template: .button(.process(coin, location))))
                     switch location {

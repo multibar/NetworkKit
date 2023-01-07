@@ -27,9 +27,10 @@ extension Store.Item {
         case phrase(number: Int, last: Bool)
         case text(Text)
         case option(Option)
+        case toggle(Toggle)
+        case stepper(Stepper)
         case footprint
         case button(Button.Action)
-        case keychain(location: Keychain.Location)
         case loader
         case spacer(Double)
     }
@@ -61,6 +62,24 @@ extension Store.Item {
         case quote (NSAttributedString)
         case center(NSAttributedString)
     }
+    public enum Option: Hashable {
+        case currency
+        case passcode
+        case biometry
+        
+        public var route: Route? {
+            switch self {
+            case .currency, .passcode, .biometry:
+                return nil
+            }
+        }
+    }
+    public enum Toggle: Hashable {
+        case keychain(Keychain.Location)
+    }
+    public enum Stepper: Hashable {
+        case words(Int)
+    }
     public struct Button: Hashable {
         public enum Action: Hashable {
             case route(Route)
@@ -76,18 +95,6 @@ extension Store.Item {
             }
         }
     }
-    public enum Option: Hashable {
-        case currency
-        case passcode
-        case biometry
-        
-        public var route: Route? {
-            switch self {
-            case .currency, .passcode, .biometry:
-                return nil
-            }
-        }
-    }
 }
 extension Store.Item {
     public var route: Route? {
@@ -100,7 +107,8 @@ extension Store.Item {
         case .phrase            : return nil
         case .quote             : return nil
         case .text              : return nil
-        case .keychain          : return nil
+        case .toggle            : return nil
+        case .stepper           : return nil
         case .footprint         : return nil
         case .loader            : return nil
         case .spacer            : return nil

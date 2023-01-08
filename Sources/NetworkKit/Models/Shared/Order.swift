@@ -119,7 +119,7 @@ extension Store.Order {
         case store(phrases: [String], coin: Coin, location: Wallet.Location, key: String)
         case rename(wallet: Wallet, with: String)
         case delete(wallet: Wallet)
-        case decrypt(wallet: Wallet)
+        case decrypt(wallet: Wallet, with: String? = nil)
         
         public var cancellable: Bool {
             self == .reload

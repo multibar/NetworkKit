@@ -11,8 +11,11 @@ extension Network {
         case cancelled
         case decode(Error)
         case message(String)
+        
+        case key
         case encryption
         case decryption
+        
         case unknown(Error)
         
         public var description: String {
@@ -33,6 +36,8 @@ extension Network {
                 return "Cancelled"
             case .decode(let error):
                 return "Decode error: \(error)"
+            case .key:
+                return "Missing private key"
             case .encryption:
                 return "Failed to encrypt."
             case .decryption:

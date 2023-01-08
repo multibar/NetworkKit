@@ -7,39 +7,43 @@ internal final class AddProvider: DefaultProvider {
         return AsyncStream { stream in
             Task {
                 await order.accept()
-                stream.yield(order)
-                switch route.add {
-                case .coins:
-                    async let coins = try coins()
-                    await order.attach(try await coins)
-                    await order.complete()
-                case .coin(let coin):
-                    async let coin = try result(for: coin, add: .coin(coin))
-                    await order.attach(try await coin)
-                    await order.complete()
-                case .store(let store):
-                    switch store {
-                    case .location(let coin):
-                        async let sections = try result(for: coin, add: .store(.location(coin)))
-                        await order.attach(try await sections)
+                do {
+                    switch route.add {
+                    case .coins:
+                        async let coins = try coins()
+                        await order.attach(try await coins)
                         await order.complete()
-                    case .recovery(let coin, let location, let words):
-                        switch order.operation {
-                        case .reload:
-                            async let sections = try result(for: coin, add: .store(.recovery(coin, location, words)))
+                    case .coin(let coin):
+                        async let coin = try result(for: coin, add: .coin(coin))
+                        await order.attach(try await coin)
+                        await order.complete()
+                    case .store(let store):
+                        switch store {
+                        case .location(let coin):
+                            async let sections = try result(for: coin, add: .store(.location(coin)))
                             await order.attach(try await sections)
                             await order.complete()
-                        case .store(let phrases, let coin, let location, let key):
-                            let wallet = try await self.store(phrases: phrases, with: coin, at: location, with: key)
-                            await order.attach(.wallet(wallet))
-                            await order.complete()
-                        default:
-                            await order.attach(.misroute)
-                            await order.fail()
+                        case .recovery(let coin, let location, let words):
+                            switch order.operation {
+                            case .reload:
+                                async let sections = try result(for: coin, add: .store(.recovery(coin, location, words)))
+                                await order.attach(try await sections)
+                                await order.complete()
+                            case .store(let phrases, let coin, let location, let key):
+                                let wallet = try await self.store(phrases: phrases, with: coin, at: location, with: key)
+                                await order.attach(.wallet(wallet))
+                                await order.complete()
+                            default:
+                                await order.attach(.misroute)
+                                await order.fail()
+                            }
                         }
+                    default:
+                        await order.attach(.misroute)
+                        await order.fail()
                     }
-                default:
-                    await order.attach(.misroute)
+                } catch {
+                    await order.attach(error)
                     await order.fail()
                 }
                 stream.yield(order)
@@ -179,7 +183,6 @@ extension AddProvider {
     }
     private func store(phrases: [String], with coin: Coin, at location: Wallet.Location, with key: String) async throws -> Wallet {
         guard let encrypted = encrypt(secret: phrases.joined(separator: " "), with: key) else { throw Network.Failure.encryption }
-        print(encrypted)
         let wallets = Keychain.wallets().filter({$0.coin == coin.code && $0.location == location}).count
         let wallet = Wallet(title: Self.title(for: location, number: wallets + 1), coin: coin.code, phrase: encrypted, location: location)
         switch location {

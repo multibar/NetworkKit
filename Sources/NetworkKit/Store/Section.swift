@@ -95,6 +95,10 @@ extension Store.Section {
         let id = UUID()
         return Store.Section(id: id, items: [Store.Item(section: id, template: .loader)])
     }
+    public static var empty: Store.Section {
+        let id = UUID()
+        return Store.Section(id: id, items: [Store.Item(section: id, template: .loader)])
+    }
     public static func spacer(height: Double) -> Store.Section {
         let id = UUID()
         return Store.Section(id: id, items: [Store.Item(section: id, template: .spacer(height))])

@@ -29,7 +29,7 @@ internal final class MultibarProvider: DefaultProvider {
 }
 extension MultibarProvider {
     private func tabs() async throws -> Store.Section {
-        var codes = OrderedSet(Keychain.wallets().compactMap({$0.coin}))
+        var codes = (try? await Store.coins().sorted(by: {$0.info.order < $1.info.order}).compactMap({$0.code})) ?? Keychain.wallets().compactMap({$0.coin})
         if codes.empty { codes = ["TON"] }
         let id = UUID()
         var items: OrderedSet<Store.Item> = try await OrderedSet(codes.asyncMap { code in
@@ -66,7 +66,8 @@ extension MultibarProvider {
         let footprint = UUID()
         let items: OrderedSet<Store.Item> = [
             Store.Item(section: footprint, template: .footprint),
-            Store.Item(section: footprint, template: .text(.center("https://github.com/multibar/wallet".attributed)))
+            Store.Item(section: footprint, template: .text(.center("https://github.com/multibar/wallet".attributed))),
+            Store.Item(section: footprint, template: .text(.center("Version \(System.App.version)".attributed)))
         ]
         let section = Store.Section(id: footprint,
                                     template: .auto,

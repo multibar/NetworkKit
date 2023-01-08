@@ -29,6 +29,8 @@ extension Store.Item {
         case option(Option)
         case toggle(Toggle)
         case stepper(Stepper)
+        case encrypted(String)
+        case decrypted([String])
         case footprint
         case button(Button.Action)
         case loader
@@ -83,13 +85,14 @@ extension Store.Item {
     public struct Button: Hashable {
         public enum Action: Hashable {
             case route(Route)
+            case decrypt(Wallet)
             case process(Coin, Wallet.Location)
             
             public var route: Route? {
                 switch self {
                 case .route(let route):
                     return route
-                case .process:
+                case .decrypt, .process:
                     return nil
                 }
             }
@@ -104,6 +107,8 @@ extension Store.Item {
         case .wallet(let wallet): return Route(to: .wallet(wallet))
         case .option(let option): return option.route
         case .button(let action): return action.route
+        case .encrypted         : return nil
+        case .decrypted         : return nil
         case .phrase            : return nil
         case .quote             : return nil
         case .text              : return nil

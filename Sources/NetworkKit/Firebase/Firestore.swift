@@ -28,7 +28,7 @@ extension Store {
     internal static func fiat(by code: String) async throws -> Fiat {
         return try await NetworkKit.fiats.fiat(code).getDocument(as: Fiat.self)
     }
-    internal static func coins(with query: Query) async throws -> [Coin] {
+    internal static func coins(with query: Query = .none) async throws -> [Coin] {
         switch query {
         case .none: return try await NetworkKit.coins.getDocuments().documents.compactMap{try $0.data(as: Coin.self)}
         }

@@ -8,7 +8,6 @@ internal final class WalletProvider: DefaultProvider {
         return AsyncStream { stream in
             Task {
                 await order.accept()
-                stream.yield(order)
                 guard let wallet = route.wallet else {
                     await order.attach(.misroute)
                     await order.fail()
@@ -18,8 +17,8 @@ internal final class WalletProvider: DefaultProvider {
                 }
                 do {
                     switch order.operation {
-                    case .reload:
-                        async let response = try response(for: wallet)
+                    case .reload, .decrypt:
+                        async let response = try response(for: wallet, operation: order.operation)
                         await order.attach(try await response.sections)
                         await order.attach(try await response.listeners)
                         await order.complete()
@@ -35,6 +34,7 @@ internal final class WalletProvider: DefaultProvider {
                     }
                 } catch {
                     await order.attach(error)
+                    await order.fail()
                 }
                 stream.yield(order)
                 stream.finish()
@@ -43,18 +43,42 @@ internal final class WalletProvider: DefaultProvider {
     }
 }
 extension WalletProvider {
-    private func response(for wallet: Wallet) async throws -> (sections: OrderedSet<Store.Section>, listeners: [Listener]) {
-        async let header = try header(for: wallet)
-        var sections = try await OrderedSet([header])
+    private func response(for wallet: Wallet, operation: Store.Order.Operation) async throws -> (sections: OrderedSet<Store.Section>, listeners: [Listener]) {
+        async let header = try header(for: wallet, operation: operation)
+        async let body = try body(for: wallet, operation: operation)
+        let sections = try await OrderedSet([header, body])
         return (sections: sections, listeners: [])
     }
-    private func header(for wallet: Wallet) async throws -> Store.Section {
+    private func header(for wallet: Wallet, operation: Store.Order.Operation) async throws -> Store.Section {
         let id = UUID()
         let section = Store.Section(id: id,
                                     header: .title(.large(text: wallet.title)),
                                     items: [
                                         .spacer(height: 8, section: id), // Will be 16 because LayoutKit adds separators
                                     ])
+        return section
+    }
+    private func body(for wallet: Wallet, operation: Store.Order.Operation) async throws -> Store.Section {
+        let id = UUID()
+        var items: OrderedSet<Store.Item> = try {
+            switch operation {
+            case .reload:
+                return [Store.Item(section: id, template: .encrypted(wallet.phrase))]
+            case .decrypt(let wallet, let key):
+                let key = key ?? Keychain.key(for: wallet)
+                guard let key else { throw Network.Failure.key }
+                guard let decrypted = decrypt(secret: wallet.phrase, with: key) else { throw Network.Failure.decryption }
+                return [Store.Item(section: id, template: .decrypted(decrypted.components(separatedBy: " ")))]
+            default:
+                return []
+            }
+        }()
+        if operation == .reload {
+            items.append(.spacer(height: 0, section: id))
+            items.append(Store.Item(section: id, template: .button(.decrypt(wallet))))
+        }
+        items.insert(.spacer(height: 0, section: id), at: 0)
+        let section = Store.Section(id: id, items: items)
         return section
     }
 }

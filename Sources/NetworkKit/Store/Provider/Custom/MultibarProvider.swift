@@ -65,7 +65,7 @@ extension MultibarProvider {
     private func footprint() async throws -> Store.Section {
         let footprint = UUID()
         let items: OrderedSet<Store.Item> = [
-            Store.Item(section: footprint, template: .footprint),
+//            Store.Item(section: footprint, template: .footprint),
             Store.Item(section: footprint, template: .text(.center("https://github.com/multibar/wallet".attributed))),
             Store.Item(section: footprint, template: .text(.center("Version \(System.App.version)".attributed)))
         ]

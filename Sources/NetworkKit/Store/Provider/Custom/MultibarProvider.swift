@@ -59,7 +59,7 @@ extension MultibarProvider {
                                     template: .settings,
                                     header: .title(.large(text: "Settings")),
                                     items: items,
-                                    footer: .spacer(height: 32))
+                                    footer: .spacer(height: 24))
         return section
     }
     private func footprint() async throws -> Store.Section {
@@ -72,7 +72,7 @@ extension MultibarProvider {
         let section = Store.Section(id: footprint,
                                     template: .auto,
                                     items: items,
-                                    footer: .spacer(height: 32))
+                                    footer: .spacer(height: 16))
         return section
     }
 }

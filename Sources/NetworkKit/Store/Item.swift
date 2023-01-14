@@ -46,7 +46,7 @@ extension Store.Item {
         public var route: Route {
             switch self {
             case .add: return Route(to: .add(.coins))
-            case .settings: return Route(to: .settings)
+            case .settings: return Route(to: .settings(.all))
             case .coin(let coin): return Route(to: .wallets(coin))
             }
         }

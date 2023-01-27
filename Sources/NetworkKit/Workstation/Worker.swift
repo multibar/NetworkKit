@@ -1,3 +1,6 @@
+#if canImport(UIKit)
+import UIKit
+#endif
 import CoreKit
 import Foundation
 
@@ -37,13 +40,29 @@ extension Workstation {
         public internal(set) var task: URLSessionTask?
         public internal(set) var progress: Network.Progress {
             didSet {
+                #if canImport(UIKit)
+                switch progress {
+                case .loading:
+                    UIApplication.shared.endBackgroundTask(background)
+                    background = UIApplication.shared.beginBackgroundTask(expirationHandler: { [weak self] in
+                        self?.task?.cancel()
+                    })
+                case .failed, .finished:
+                    UIApplication.shared.endBackgroundTask(background)
+                    background = .invalid
+                default:
+                    break
+                }
+                #endif
                 let output = Network.Output(id: id, progress: progress)
                 leeches.values.forEach({$0(output)})
             }
         }
-        public var request: Network.Request {
-            return work.request
-        }
+        public var request: Network.Request { work.request }
+        
+        #if canImport(UIKit)
+        private var background = UIBackgroundTaskIdentifier(rawValue: 0)
+        #endif
         
         public static func ==(lhs: Worker, rhs: Worker) -> Bool {
             return lhs.id == rhs.id && lhs.source == rhs.source && lhs.work == rhs.work

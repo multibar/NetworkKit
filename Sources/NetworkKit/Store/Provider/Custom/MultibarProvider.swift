@@ -9,18 +9,13 @@ internal final class MultibarProvider: DefaultProvider {
             Task {
                 await order.accept()
                 stream.yield(order)
-                do {
-                    async let tabs = try tabs()
-                    async let settings = try settings()
-                    async let footprint = try footprint()
-                    await order.attach(try await tabs)
-                    await order.attach(try await settings)
-                    await order.attach(try await footprint)
-                    await order.complete()
-                } catch {
-                    await order.attach(error)
-                    await order.fail()
-                }
+                async let tabs = tabs()
+                async let settings = settings()
+                async let footprint = footprint()
+                await order.attach(await tabs)
+                await order.attach(await settings)
+                await order.attach(await footprint)
+                await order.complete()
                 stream.yield(order)
                 stream.finish()
             }
@@ -28,21 +23,26 @@ internal final class MultibarProvider: DefaultProvider {
     }
 }
 extension MultibarProvider {
-    private func tabs() async throws -> Store.Section {
+    private func tabs() async -> Store.Order.Attachment {
         var codes = (try? await Store.coins().sorted(by: {$0.info.order < $1.info.order}).compactMap({$0.code})) ?? Keychain.wallets().compactMap({$0.coin})
         if codes.empty { codes = ["TON"] }
-        let id = UUID()
-        var items: OrderedSet<Store.Item> = try await OrderedSet(codes.asyncMap { code in
-            return Store.Item(section: id, template: .tab(.coin(try await Store.coin(by: code))))
-        })
-        items.append(Store.Item(section: id, template: .tab(.add)))
-        let section = Store.Section(id: id,
-                                    template: .tabs,
-                                    items: items,
-                                    footer: .spacer(height: 16))
-        return section
+        do {
+            let id = UUID()
+            var items: OrderedSet<Store.Item> = try await OrderedSet(codes.asyncMap { code in
+                return Store.Item(section: id, template: .tab(.coin(try await Store.coin(by: code))))
+            })
+            items.append(Store.Item(section: id, template: .tab(.add)))
+            let section = Store.Section(id: id,
+                                        template: .tabs,
+                                        items: items,
+                                        footer: .spacer(height: 16))
+            return .section(section)
+        } catch {
+            return .failure(.unknown(error))
+        }
     }
-    private func settings() async throws -> Store.Section {
+    private func settings() async -> Store.Order.Attachment {
+        return .failure(.message("Test"))
         let settings = UUID()
         var items: OrderedSet<Store.Item> = [
             .spacer(height: 16, section: settings),
@@ -60,9 +60,9 @@ extension MultibarProvider {
                                     header: .title(.large(text: "Settings")),
                                     items: items,
                                     footer: .spacer(height: 24))
-        return section
+        return .section(section)
     }
-    private func footprint() async throws -> Store.Section {
+    private func footprint() async -> Store.Order.Attachment {
         let footprint = UUID()
         let items: OrderedSet<Store.Item> = [
 //            Store.Item(section: footprint, template: .footprint),
@@ -73,6 +73,6 @@ extension MultibarProvider {
                                     template: .auto,
                                     items: items,
                                     footer: .spacer(height: 16))
-        return section
+        return .section(section)
     }
 }

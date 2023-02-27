@@ -74,6 +74,20 @@ extension Store.Order {
             return
         }
     }
+    internal func attach(_ attachment: Attachment) {
+        switch attachment {
+        case .package(let package):
+            attach(package)
+        case .section(let section):
+            attach(section)
+        case .sections(let sections):
+            attach(sections)
+        case .failure(let failure):
+            attach(failure)
+        case .failures(let failures):
+            attach(failures)
+        }
+    }
     internal func attach(_ package: Package) {
         guard status == .created || status == .accepted else { return }
         self.package = package
@@ -137,6 +151,15 @@ extension Store.Order {
                 return wallet
             }
         }
+    }
+    public enum Attachment: Hashable, Equatable {        
+        case package(Package)
+        case section(Store.Section)
+        case sections(OrderedSet<Store.Section>)
+//        case observable(Observable)
+//        case observables([Observable])
+        case failure(Network.Failure)
+        case failures([Network.Failure])
     }
     public enum Status: Hashable, Equatable {
         case created
